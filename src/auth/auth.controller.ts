@@ -1,4 +1,4 @@
-import { BadRequestException, Body, Controller, ForbiddenException, Get, InternalServerErrorException, NotFoundException, Post, UnauthorizedException, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
+import { BadRequestException, Body, Controller, ForbiddenException, Get, InternalServerErrorException, NotFoundException, Post, Req, UnauthorizedException, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { BcryptService } from 'src/bcrypt/bcrypt.service';
 import { UserService } from 'src/user/user.service';
@@ -6,6 +6,8 @@ import { AuthService } from './auth.service';
 import { AppService } from 'src/app.service';
 import { User } from '@prisma/client';
 import { ConfigService } from '@nestjs/config';
+import { Request } from 'express';
+import { AdminGuard } from 'src/admin/admin.guard';
 // import { UserGuard } from 'src/user/user.guard';
 // import { AdminGuard } from 'src/admin/admin.guard';
 // import { FileInterceptor } from '@nestjs/platform-express';
@@ -176,6 +178,28 @@ export class AuthController {
         delete user.otpCreatedAt
 
         return {user, refreshToken, accessToken}
+    }
+
+    @Post("admin/refresh")
+    async adminRefreshTokenController(@Req() req: any){
+        if(!req.header("Authorization")){
+            throw new UnauthorizedException();
+        }
+        const refreshToken = req.header("Authorization").split(" ")[1];
+        const decoded = await this.jwtService.verifyAsync(refreshToken, {secret: this.configService.get<string>("JWT_ADMIN_SECRET")});
+        const decrypted = await this.bcryptService.decryptSync(decoded.refreshPayload);
+        const user = await this.userService.getUserById(decrypted.id);
+        if(!user){
+            throw new UnauthorizedException();
+        }
+        const newHashValue = await this.bcryptService.hashSync(refreshToken);
+        if(user.refreshToken != newHashValue){
+            throw new UnauthorizedException();
+        }
+        let payload = {id: user.id, email: user.email};
+        const accessPayload = await this.bcryptService.encryptPayload(payload);
+        const accessToken = await this.jwtService.signAsync({accessPayload}, {secret: this.configService.get<string>('JWT_ADMIN_SECRET'), expiresIn: "5m"})
+        return {accessToken};
     }
 
     /* FILE UPLOAD TEST */
