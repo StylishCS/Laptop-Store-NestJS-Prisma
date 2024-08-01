@@ -25,7 +25,7 @@ export class ProductController {
         }),
     )
     async createProductController(@Body() productDTO: Omit<Product, "id"|"createdAt"|"updatedAt"|"userId">, @UploadedFile() file:any){
-        productDTO.image = `http://localhost:3000/uploads/${file.filename}`
+        productDTO.image = `http://165.227.152.184:3000/uploads/${file.filename}`
         productDTO.price = +productDTO.price;
         const product = await this.productService.createProduct(productDTO);
         if(!product){
