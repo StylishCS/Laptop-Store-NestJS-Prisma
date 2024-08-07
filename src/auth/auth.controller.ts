@@ -180,7 +180,7 @@ export class AuthController {
         return {user, refreshToken, accessToken}
     }
 
-    @Post("admin/refresh")
+    @Post("/admin/refresh")
     async adminRefreshTokenController(@Req() req: any){
         if(!req.header("Authorization")){
             throw new UnauthorizedException();
@@ -199,6 +199,28 @@ export class AuthController {
         let payload = {id: user.id, email: user.email};
         const accessPayload = await this.bcryptService.encryptPayload(payload);
         const accessToken = await this.jwtService.signAsync({accessPayload}, {secret: this.configService.get<string>('JWT_ADMIN_SECRET'), expiresIn: "5m"})
+        return {accessToken};
+    }
+
+    @Post("/user/refresh")
+    async userRefreshTokenController(@Req() req: any){
+        if(!req.header("Authorization")){
+            throw new UnauthorizedException(1);
+        }
+        const refreshToken = req.header("Authorization").split(" ")[1];
+        const decoded = await this.jwtService.verifyAsync(refreshToken, {secret: this.configService.get<string>("JWT_SECRET")});
+        const decrypted = await this.bcryptService.decryptSync(decoded.refreshPayload);
+        const user = await this.userService.getUserById(decrypted.id);
+        if(!user){
+            throw new UnauthorizedException(2);
+        }
+        const newHashValue = await this.bcryptService.hashSync(refreshToken);
+        if(user.refreshToken != newHashValue){
+            throw new UnauthorizedException(3);
+        }
+        let payload = {id: user.id, email: user.email};
+        const accessPayload = await this.bcryptService.encryptPayload(payload);
+        const accessToken = await this.jwtService.signAsync({accessPayload}, {secret: this.configService.get<string>('JWT_SECRET'), expiresIn: "5m"})
         return {accessToken};
     }
 
