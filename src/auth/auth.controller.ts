@@ -33,7 +33,7 @@ export class AuthController {
         if(!user.verified){
             throw new UnauthorizedException("User Not Verified..");
         }
-        const validPassword = this.bcryptService.compareSync(userCreds.password, user.password);
+        const validPassword = await this.bcryptService.compareSync(userCreds.password, user.password);
         if(!validPassword){
             throw new UnauthorizedException("Wrong Email or Password");
         }
