@@ -56,11 +56,13 @@ export class AuthController {
     }
 
     @Post("signup")
-    async signupUserController(@Body() userDTO: Omit<User, "id"|"refreshToken"|"isAdmin">){
+    async signupUserController(@Body() userDTO: Omit<User, "id"|"refreshToken">){
         userDTO.password = await this.bcryptService.hashSync(userDTO.password)
         const otp = this.authService.generateOTP();
         userDTO.otpCode = await this.bcryptService.hashSync(otp);
         userDTO.otpCreatedAt = new Date();
+        userDTO.verified = false;
+        userDTO.isAdmin = false;
         let user = await this.userService.createUser(userDTO);
         if(!user){
             throw new InternalServerErrorException("Something Went Wrong..")

@@ -6,7 +6,7 @@ import { PrismaService } from 'src/prisma/prisma.service';
 export class UserService {
     constructor(private prismaService: PrismaService){}
 
-    async createUser(userDTO: Omit<User, "id"|"refreshToken"|"otpCode"|"otpCreatedAt"|"isAdmin">):Promise<User>{
+    async createUser(userDTO: Omit<User, "id"|"refreshToken"|"otpCode"|"otpCreatedAt">):Promise<User>{
         let user = await this.prismaService.Client.user.findUnique({where: {email: userDTO.email}})
         if(user){
             return null;
